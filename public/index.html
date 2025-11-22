@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Speech-to-Text Light — Listening Companion</title>
+
+  <!-- Brand CSS (provided) -->
+  <link rel="stylesheet" href="/css/pv-brand.css" />
+
+  <!-- App-specific styles -->
+  <link rel="stylesheet" href="/css/styles.css" />
+
+</head>
+<body>
+  <header class="pv-hero">
+    <div class="pv-card pv-card-dark" style="max-width:1100px;margin:0 auto;">
+      <h1 class="pv-serif">Speech-to-Text Light</h1>
+      <p class="pv-section-sub">A lightweight hands-free companion that ingests URLs, files, paste or spoken prompts and responds with emotionally aware narration.</p>
+      <div style="display:flex;gap:12px;align-items:center;justify-content:center;margin-top:12px;">
+        <button id="clearMemory" class="pv-btn pv-btn-secondary">Clear Memory</button>
+        <button id="downloadTranscript" class="pv-btn pv-btn-primary">Download Transcript</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="pv-section" style="max-width:1100px;margin:0 auto;">
+    <div class="pv-grid-2" style="align-items:start;">
+      <section>
+        <div class="pv-card">
+          <div style="display:flex;gap:12px;align-items:center;">
+            <label class="pv-badge">Primary Input</label>
+            <span class="pv-pill">Hands-free ready</span>
+          </div>
+
+          <div style="position:relative;margin-top:12px;">
+            <button id="uploadBtn" title="Upload file" class="pv-btn pv-btn-secondary" style="position:absolute;left:8px;top:8px;border-radius:8px;padding:8px 10px;">📎</button>
+            <textarea id="inputText" class="pv-input" placeholder="Type, paste, or paste a URL here..." rows="6" style="padding-left:56px;padding-right:130px;"></textarea>
+
+            <div style="position:absolute;right:8px;top:8px;display:flex;gap:8px;">
+              <button id="micBtn" title="Record speech" class="pv-btn pv-btn-primary" style="border-radius:8px;padding:8px 10px;">🎙️</button>
+              <button id="sendBtn" title="Send / Narrate" class="pv-btn pv-btn-secondary" style="border-radius:8px;padding:8px 10px;">📤</button>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:12px;align-items:center;">
+            <input id="fileInput" type="file" style="display:none;" />
+            <div>
+              <label class="pv-section-kicker">Accepted</label>
+              <p class="pv-section-sub" style="margin:0">.txt .md .html .pdf .jpg .png .jpeg</p>
+            </div>
+            <div id="status" style="margin-left:auto;color:var(--pv-text-muted);font-size:0.95rem;">Ready</div>
+          </div>
+        </div>
+
+        <div class="pv-card" style="margin-top:18px;">
+          <h3 class="pv-section-title" style="font-size:1.05rem;">Controls</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <label><input id="ttsEnabled" type="checkbox" class="pv-checkbox" checked /> Enable TTS</label>
+            <label><input id="autoPlay" type="checkbox" class="pv-checkbox" checked /> Auto-play on submit</label>
+            <label style="margin-left:auto">Voice: <select id="voiceSelect" class="pv-select"></select></label>
+          </div>
+          <div style="margin-top:12px;">
+            <label>Prosody Presets</label>
+            <select id="prosodySelect" class="pv-select">
+              <option value="neutral">Neutral</option>
+              <option value="warm">Warm (slower, lower pitch)</option>
+              <option value="bright">Bright (faster, higher pitch)</option>
+              <option value="empathetic">Empathetic (moderate + subtle emphasis)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="pv-card">
+          <h3 class="pv-section-title pv-serif" style="font-size:1.1rem;">Conversation Memory</h3>
+          <p class="pv-section-sub">Drift-aware memory list (latest shown first). Each response stores a short identity/emotion snapshot to adapt future narration.</p>
+          <ul id="memoryList" class="pv-timeline" style="max-height:420px;overflow:auto;padding-right:12px;"></ul>
+        </div>
+
+        <div class="pv-card" style="margin-top:18px;">
+          <h3 class="pv-section-title pv-serif" style="font-size:1.05rem;">Activity / Debug</h3>
+          <pre id="log" style="white-space:pre-wrap;background:transparent;border:none;margin:0;padding:0;color:var(--pv-text-muted);"></pre>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="pv-section alt" style="text-align:center;">
+    <div style="max-width:900px;margin:0 auto;">
+      <p class="pv-section-sub">This demo implements the core flows described in the repository README: link ingestion, paste reading, basic file uploads, image tags, live speech capture and emotion-informed narration using browser APIs.</p>
+      <p style="color:var(--pv-text-muted)">Built by @copilot • Local demo — optionally backed by the server APIs.</p>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
