@@ -37,6 +37,16 @@ LLM_MODEL = "gpt-4o-mini"  # text/image to narration script
 
 # Security settings
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB max file size
+URL_FETCH_TIMEOUT = 5  # Timeout for URL fetching in seconds
+ALLOWED_FILE_EXTENSIONS = {'.pdf', '.docx', '.doc', '.txt', '.md', '.xlsx', 
+                           '.xls', '.csv', '.png', '.jpg', '.jpeg', '.gif', '.webp'}
+BLOCKED_HOSTS = [
+    'localhost',
+    'metadata.google.internal',  # Google Cloud metadata
+    'kubernetes.default.svc.cluster.local',  # Kubernetes API
+    'consul',  # Consul service discovery
+    'vault',  # HashiCorp Vault
+]
 
 
 # ---------- FLASK APP ----------
@@ -81,8 +91,7 @@ def is_safe_url(url: str) -> tuple[bool, str]:
                 return False, "Cannot resolve hostname"
         
         # Block common internal hostnames
-        blocked_hosts = ['localhost', 'metadata.google.internal']
-        if parsed.hostname.lower() in blocked_hosts:
+        if parsed.hostname.lower() in BLOCKED_HOSTS:
             return False, f"Access to {parsed.hostname} is not allowed"
         
         return True, "OK"
@@ -98,7 +107,7 @@ def fetch_url_text(url: str) -> str:
         return f"URL rejected for security reasons: {reason}"
     
     try:
-        resp = requests.get(url, timeout=10, allow_redirects=False)
+        resp = requests.get(url, timeout=URL_FETCH_TIMEOUT, allow_redirects=False)
         resp.raise_for_status()
         html = resp.text
     except Exception as e:
@@ -330,10 +339,8 @@ def api_process():
             return "File too large (max 10MB)", 400
         
         # Validate file extension
-        allowed_extensions = {'.pdf', '.docx', '.doc', '.txt', '.md', '.xlsx', 
-                             '.xls', '.csv', '.png', '.jpg', '.jpeg', '.gif', '.webp'}
         ext = Path(uploaded_file.filename).suffix.lower()
-        if ext not in allowed_extensions:
+        if ext not in ALLOWED_FILE_EXTENSIONS:
             return f"File type {ext} not allowed", 400
 
     normalized_text, modality = process_request_content(text_input, uploaded_file)
