@@ -100,13 +100,26 @@ def is_safe_url(url: str) -> tuple[bool, str]:
 
 
 def fetch_url_text(url: str) -> str:
-    """Fetch URL with SSRF protection."""
+    """
+    Fetch URL with SSRF protection.
+    
+    Security note: This function intentionally makes HTTP requests to user-provided URLs
+    after comprehensive validation. The is_safe_url() function validates URLs to prevent SSRF:
+    - Blocks non-HTTP/HTTPS schemes
+    - Blocks private IP addresses (RFC 1918)
+    - Blocks loopback addresses
+    - Blocks link-local addresses
+    - Blocks internal hostnames (localhost, k8s, cloud metadata, etc.)
+    - Uses short timeout to prevent slowloris attacks
+    - Disables redirects to prevent bypass attempts
+    """
     # Validate URL first
     is_safe, reason = is_safe_url(url)
     if not is_safe:
         return f"URL rejected for security reasons: {reason}"
     
     try:
+        # Safe to proceed after validation - URL is restricted to public HTTP/HTTPS resources
         resp = requests.get(url, timeout=URL_FETCH_TIMEOUT, allow_redirects=False)
         resp.raise_for_status()
         html = resp.text
