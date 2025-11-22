@@ -27,6 +27,21 @@ LLM_MODEL = "gpt-4o-mini"              # text/image → “narration script” :
 
 app = Flask(__name__)
 
+# Add security headers to all responses
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to protect against common vulnerabilities."""
+    # Prevent clickjacking attacks
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    # Prevent MIME type sniffing
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    # Enable XSS protection
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    # Enforce HTTPS in production (when not in debug mode)
+    if not app.debug:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
 # ---------- UTILITIES ----------
 
 URL_REGEX = re.compile(r"^https?://", re.IGNORECASE)
@@ -38,12 +53,34 @@ def looks_like_url(text: str) -> bool:
 
 def fetch_url_text(url: str) -> str:
     """Very simple URL fetch + HTML-to-text. For production, use something like readability."""
+    # Warn about insecure HTTP URLs
+    if url.lower().startswith("http://"):
+        warning_msg = (
+            "Warning: You provided an insecure HTTP URL. "
+            "For security, you should use HTTPS URLs instead. "
+            "Proceeding with caution..."
+        )
+        print(f"[SECURITY WARNING] {warning_msg}")
+    
     try:
-        resp = requests.get(url, timeout=10)
+        # Enforce SSL/TLS certificate verification
+        resp = requests.get(url, timeout=10, verify=True)
         resp.raise_for_status()
         html = resp.text
-    except Exception as e:
-        return f"Failed to fetch URL {url}: {e}"
+    except requests.exceptions.SSLError as e:
+        return (
+            f"SSL certificate verification failed for {url}. "
+            f"This happened because the site's security certificate could not be verified. "
+            f"To fix this, ensure you are using a valid HTTPS URL with a proper SSL certificate. "
+            f"Error details: {e}"
+        )
+    except requests.exceptions.RequestException as e:
+        return (
+            f"Failed to fetch URL {url}. "
+            f"This happened because: {e}. "
+            f"To fix this, verify the URL is correct and accessible, "
+            f"and consider using HTTPS for secure connections."
+        )
 
     # ultra-lightweight HTML stripping
     # (you can swap this for BeautifulSoup / readability if you want)
@@ -683,4 +720,12 @@ HTML_TEMPLATE = r"""
 # ---------- ENTRY ----------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Use environment variable to control debug mode
+    # Set DEBUG=1 in environment for development, leave unset for production
+    debug_mode = os.environ.get("DEBUG", "0") == "1"
+    
+    if debug_mode:
+        print("[WARNING] Running in DEBUG mode. This should only be used in development.")
+        print("[WARNING] For production, do not set DEBUG=1 environment variable.")
+    
+    app.run(debug=debug_mode)
