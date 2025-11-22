@@ -50,3 +50,18 @@ The application focuses on rapid, natural listening. Users can hand it any form 
 - User-tunable personas and tone presets.
 - Exportable summaries alongside audio responses.
 - Mobile-friendly layout with voice-first shortcuts.
+
+## Contributing
+
+Interested in contributing to this project? We welcome contributions!
+
+If you're new to Git or need help understanding how to work with branches, commits, pulls, and merges, check out our comprehensive [Contributing Guide](CONTRIBUTING.md). It includes:
+
+- Git basics and concepts explained clearly
+- How to navigate between branches
+- Step-by-step workflows for making changes
+- Understanding commits, pulls, and merges
+- Common troubleshooting tips
+- Pull request best practices
+
+Even if you're experienced with Git, the guide contains project-specific workflows and conventions that will help you contribute effectively.
