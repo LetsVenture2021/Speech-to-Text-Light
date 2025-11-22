@@ -113,10 +113,9 @@ def interpret_image_to_text(img_bytes: bytes, filename: str) -> str:
                 "role": "user",
                 "content": [
                     {
-                        "type": "input_image",
-                        "image": {
-                            "data": b64,
-                            "media_type": mime_type,
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{b64}",
                         },
                     },
                     {
