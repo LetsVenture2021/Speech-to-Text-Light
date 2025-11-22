@@ -35,8 +35,6 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     # Prevent MIME type sniffing
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    # Enable XSS protection
-    response.headers['X-XSS-Protection'] = '1; mode=block'
     # Enforce HTTPS in production (when not in debug mode)
     if not app.debug:
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
@@ -721,11 +719,12 @@ HTML_TEMPLATE = r"""
 
 if __name__ == "__main__":
     # Use environment variable to control debug mode
-    # Set DEBUG=1 in environment for development, leave unset for production
-    debug_mode = os.environ.get("DEBUG", "0") == "1"
+    # Set DEBUG=1, DEBUG=true, or DEBUG=yes in environment for development
+    debug_value = os.environ.get("DEBUG", "0").lower()
+    debug_mode = debug_value in ("1", "true", "yes", "on")
     
     if debug_mode:
         print("[WARNING] Running in DEBUG mode. This should only be used in development.")
-        print("[WARNING] For production, do not set DEBUG=1 environment variable.")
+        print("[WARNING] For production, do not set DEBUG environment variable.")
     
     app.run(debug=debug_mode)

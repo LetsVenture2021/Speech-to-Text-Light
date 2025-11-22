@@ -48,8 +48,8 @@ The application focuses on rapid, natural listening. Users can hand it any form 
 
 - **HTTPS Enforcement**: The application warns when insecure HTTP URLs are used and recommends HTTPS for secure connections.
 - **SSL/TLS Verification**: SSL certificate verification is enforced to prevent man-in-the-middle attacks.
-- **Debug Mode**: Debug mode is disabled by default. To enable it for development, set the `DEBUG=1` environment variable.
-- **Security Headers**: The application includes security headers (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, and HSTS) to protect against common web vulnerabilities.
+- **Debug Mode**: Debug mode is disabled by default. To enable it for development, set the `DEBUG` environment variable to `1`, `true`, `yes`, or `on`.
+- **Security Headers**: The application includes security headers (X-Frame-Options, X-Content-Type-Options, and HSTS) to protect against common web vulnerabilities.
 - **Error Messages**: Error messages clearly explain what happened and provide guidance on how to fix issues, especially for HTTP/HTTPS-related problems.
 
 ## Roadmap Ideas
