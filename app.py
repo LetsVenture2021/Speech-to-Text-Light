@@ -5,6 +5,8 @@ import mimetypes
 import time
 import re
 from pathlib import Path
+from urllib.parse import urlparse
+import ipaddress
 
 from flask import Flask, request, send_file, make_response
 from flask import render_template_string
@@ -49,8 +51,60 @@ def looks_like_url(text: str) -> bool:
     return bool(URL_REGEX.match(text.strip()))
 
 
+def is_safe_url(url: str) -> tuple[bool, str]:
+    """
+    Validate URL to prevent SSRF attacks.
+    Returns (is_safe, error_message).
+    """
+    try:
+        parsed = urlparse(url)
+        
+        # Only allow http and https schemes
+        if parsed.scheme not in ('http', 'https'):
+            return False, f"Unsupported URL scheme: {parsed.scheme}. Only HTTP and HTTPS are allowed."
+        
+        # Get the hostname
+        hostname = parsed.hostname
+        if not hostname:
+            return False, "Invalid URL: no hostname found."
+        
+        # Try to resolve the hostname to an IP address
+        try:
+            import socket
+            ip_str = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(ip_str)
+            
+            # Block private/internal IP addresses to prevent SSRF
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                return False, (
+                    f"URL points to a private/internal IP address ({ip_str}). "
+                    f"For security, fetching from internal networks is not allowed."
+                )
+        except socket.gaierror:
+            # If we can't resolve it, let requests handle it (it might fail anyway)
+            pass
+        except Exception:
+            # If validation fails for any other reason, allow it to proceed
+            # (requests will handle invalid URLs)
+            pass
+        
+        return True, ""
+    except Exception as e:
+        # If parsing fails, let requests handle the error
+        return True, ""
+
+
 def fetch_url_text(url: str) -> str:
     """Very simple URL fetch + HTML-to-text. For production, use something like readability."""
+    # Validate URL to prevent SSRF attacks
+    is_safe, error_msg = is_safe_url(url)
+    if not is_safe:
+        return (
+            f"URL validation failed. "
+            f"This happened because: {error_msg} "
+            f"To fix this, use a publicly accessible URL."
+        )
+    
     # Warn about insecure HTTP URLs
     if url.lower().startswith("http://"):
         warning_msg = (
