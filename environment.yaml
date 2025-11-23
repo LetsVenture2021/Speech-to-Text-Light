@@ -1,0 +1,9 @@
+# environment.yml
+name: speech-to-text-env
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  - pip:
+      - any-required-pypi-packages
