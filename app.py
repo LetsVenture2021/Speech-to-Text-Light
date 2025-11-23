@@ -33,6 +33,15 @@ app = Flask(__name__)
 URL_REGEX = re.compile(r"^https?://", re.IGNORECASE)
 
 
+def ensure_client():
+    """Ensure OpenAI client is initialized with API key."""
+    if client is None:
+        raise RuntimeError(
+            "OpenAI API key not configured. "
+            "Please set the OPENAI_API_KEY environment variable."
+        )
+
+
 def looks_like_url(text: str) -> bool:
     return bool(URL_REGEX.match(text.strip()))
 
@@ -96,6 +105,7 @@ def summarize_table(df: pd.DataFrame) -> str:
 
 def interpret_image_to_text(img_bytes: bytes, filename: str) -> str:
     """Send an image to gpt-4o-mini and ask for a descriptive, narration-ready text."""
+    ensure_client()
     b64 = base64.b64encode(img_bytes).decode("utf-8")
     mime_type = mimetypes.guess_type(filename)[0] or "image/png"
 
@@ -140,6 +150,7 @@ def run_inflective_emergence_loop(raw_text: str, modality: str) -> str:
     - prosody-aware narration script
     Returns: text that is ready to be sent to TTS.
     """
+    ensure_client()
     system_prompt = f"""
 You are an 'Inflective Emergence Loop' driving a voice-only content reader.
 
@@ -179,6 +190,7 @@ def text_to_speech(narration_text: str) -> bytes:
     Use the Audio API to turn text into speech.
     We rely on the fact that audio.speech.create returns raw audio bytes. :contentReference[oaicite:4]{index=4}
     """
+    ensure_client()
     # optional: add extra style guidance
     instructions = (
         "Read as a calm, clear narrator. Vary intonation slightly to match emotion, "
@@ -197,6 +209,7 @@ def text_to_speech(narration_text: str) -> bytes:
 
 def transcribe_audio(file_obj) -> str:
     """Speech to text via gpt-4o-mini-transcribe."""
+    ensure_client()
     transcript = client.audio.transcriptions.create(
         model=STT_MODEL,
         file=file_obj,
