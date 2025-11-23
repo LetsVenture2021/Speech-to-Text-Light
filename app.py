@@ -2,11 +2,10 @@ import os
 import io
 import base64
 import mimetypes
-import time
 import re
 from pathlib import Path
 
-from flask import Flask, request, send_file, make_response
+from flask import Flask, request, make_response
 from flask import render_template_string
 from openai import OpenAI
 import requests
@@ -17,7 +16,9 @@ import pandas as pd
 
 # ---------- CONFIG ----------
 
-client = OpenAI()  # uses OPENAI_API_KEY from environment
+# Initialize OpenAI client - allows for missing key during import (for testing)
+api_key = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key) if api_key else None
 
 TTS_MODEL = "gpt-4o-mini-tts"          # text → speech :contentReference[oaicite:0]{index=0}
 STT_MODEL = "gpt-4o-mini-transcribe"   # speech → text :contentReference[oaicite:1]{index=1}
@@ -144,10 +145,14 @@ You are an 'Inflective Emergence Loop' driving a voice-only content reader.
 
 Pipeline:
 1. Semantic Layer: Quickly understand the source ({modality}) and extract the essential ideas.
-2. Emotion Inference: Infer the emotional tone appropriate for the material (neutral, upbeat, urgent, empathetic, etc.).
-3. Identity Kernel: Maintain a consistent, calm, intelligent narrator persona with subtle drift over time (slightly adapting tone to the content without becoming caricatured).
-4. Prosody Plan: Shape sentences so they are easy to speak and easy to listen to: short clauses, logical pauses, and clear emphasis.
-5. Output: A narration SCRIPT — not bullets, not markdown — just clean, spoken-style paragraphs.
+2. Emotion Inference: Infer the emotional tone appropriate for the material 
+   (neutral, upbeat, urgent, empathetic, etc.).
+3. Identity Kernel: Maintain a consistent, calm, intelligent narrator persona with subtle drift 
+   over time (slightly adapting tone to the content without becoming caricatured).
+4. Prosody Plan: Shape sentences so they are easy to speak and easy to listen to: 
+   short clauses, logical pauses, and clear emphasis.
+5. Output: A narration SCRIPT — not bullets, not markdown — just clean, 
+   spoken-style paragraphs.
 
 Constraints:
 - Be concise but complete enough that I’d understand the gist if I only listened once.
