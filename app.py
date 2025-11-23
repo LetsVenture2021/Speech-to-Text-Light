@@ -57,13 +57,13 @@ def fetch_url_text(url: str) -> str:
 
         # Parse and validate URL
         parsed = urlparse(url)
-        if not parsed.scheme in ['http', 'https']:
-            return f"Invalid URL scheme. Only http and https are allowed."
+        if parsed.scheme not in ['http', 'https']:
+            return "Invalid URL scheme. Only http and https are allowed."
 
         # Get hostname and check if it's private/local
         hostname = parsed.hostname
         if not hostname:
-            return f"Invalid URL: missing hostname."
+            return "Invalid URL: missing hostname."
 
         # Resolve hostname to IP and check if it's private
         try:
@@ -71,11 +71,11 @@ def fetch_url_text(url: str) -> str:
             # Block private IP ranges (10.x, 172.16-31.x, 192.168.x, 127.x, 169.254.x)
             octets = ip_addr.split('.')
             if (octets[0] == '10' or
-                octets[0] == '127' or
-                (octets[0] == '172' and 16 <= int(octets[1]) <= 31) or
-                (octets[0] == '192' and octets[1] == '168') or
-                (octets[0] == '169' and octets[1] == '254')):
-                return f"Access to private/local addresses is not allowed."
+                    octets[0] == '127' or
+                    (octets[0] == '172' and 16 <= int(octets[1]) <= 31) or
+                    (octets[0] == '192' and octets[1] == '168') or
+                    (octets[0] == '169' and octets[1] == '254')):
+                return "Access to private/local addresses is not allowed."
         except socket.gaierror:
             return f"Failed to resolve hostname: {hostname}"
 
@@ -186,13 +186,13 @@ You are an 'Inflective Emergence Loop' driving a voice-only content reader.
 
 Pipeline:
 1. Semantic Layer: Quickly understand the source ({modality}) and extract the essential ideas.
-2. Emotion Inference: Infer the emotional tone appropriate for the material 
+2. Emotion Inference: Infer the emotional tone appropriate for the material
    (neutral, upbeat, urgent, empathetic, etc.).
-3. Identity Kernel: Maintain a consistent, calm, intelligent narrator persona with subtle drift 
+3. Identity Kernel: Maintain a consistent, calm, intelligent narrator persona with subtle drift
    over time (slightly adapting tone to the content without becoming caricatured).
-4. Prosody Plan: Shape sentences so they are easy to speak and easy to listen to: 
+4. Prosody Plan: Shape sentences so they are easy to speak and easy to listen to:
    short clauses, logical pauses, and clear emphasis.
-5. Output: A narration SCRIPT — not bullets, not markdown — just clean, 
+5. Output: A narration SCRIPT — not bullets, not markdown — just clean,
    spoken-style paragraphs.
 
 Constraints:
