@@ -218,7 +218,7 @@
     } else {
       if (!recognition) recognition = await initRecognition();
       if (!recognition) { setStatus('Speech recognition not supported in your browser.'); return; }
-      transcripts = transcripts || [];
+      
       recognition.start();
       micBtn.dataset.recording = '1';
       micBtn.textContent = '⏹️';
