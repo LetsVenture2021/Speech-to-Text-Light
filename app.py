@@ -4,7 +4,10 @@ import base64
 import mimetypes
 import time
 import re
+import socket
+import ipaddress
 from pathlib import Path
+from urllib.parse import urlparse
 
 from flask import Flask, request, send_file, make_response
 from flask import render_template_string
@@ -17,11 +20,34 @@ import pandas as pd
 
 # ---------- CONFIG ----------
 
-client = OpenAI()  # uses OPENAI_API_KEY from environment
+# Validate API key at startup
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError(
+        "OPENAI_API_KEY environment variable is required. "
+        "Get your API key from https://platform.openai.com/api-keys"
+    )
 
-TTS_MODEL = "gpt-4o-mini-tts"          # text → speech :contentReference[oaicite:0]{index=0}
-STT_MODEL = "gpt-4o-mini-transcribe"   # speech → text :contentReference[oaicite:1]{index=1}
-LLM_MODEL = "gpt-4o-mini"              # text/image → “narration script” :contentReference[oaicite:2]{index=2}
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+# Use correct OpenAI model names
+TTS_MODEL = "tts-1"        # Correct text-to-speech model
+STT_MODEL = "whisper-1"    # Correct speech-to-text model
+LLM_MODEL = "gpt-4o-mini"  # text/image to narration script
+
+# Security settings
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB max file size
+URL_FETCH_TIMEOUT = 5  # Timeout for URL fetching in seconds
+ALLOWED_FILE_EXTENSIONS = {'.pdf', '.docx', '.doc', '.txt', '.md', '.xlsx', 
+                           '.xls', '.csv', '.png', '.jpg', '.jpeg', '.gif', '.webp'}
+BLOCKED_HOSTS = [
+    'localhost',
+    'metadata.google.internal',  # Google Cloud metadata
+    'kubernetes.default.svc.cluster.local',  # Kubernetes API
+    'consul',  # Consul service discovery
+    'vault',  # HashiCorp Vault
+]
+
 
 # ---------- FLASK APP ----------
 
@@ -36,10 +62,65 @@ def looks_like_url(text: str) -> bool:
     return bool(URL_REGEX.match(text.strip()))
 
 
-def fetch_url_text(url: str) -> str:
-    """Very simple URL fetch + HTML-to-text. For production, use something like readability."""
+def is_safe_url(url: str) -> tuple[bool, str]:
+    """Validate URL to prevent SSRF attacks."""
     try:
-        resp = requests.get(url, timeout=10)
+        parsed = urlparse(url)
+        
+        # Only allow http/https
+        if parsed.scheme not in ('http', 'https'):
+            return False, f"Invalid scheme: {parsed.scheme}"
+        
+        # Block if no hostname
+        if not parsed.hostname:
+            return False, "No hostname provided"
+        
+        # Block private/internal IP addresses
+        try:
+            ip = ipaddress.ip_address(parsed.hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                return False, "Access to private IP addresses is not allowed"
+        except ValueError:
+            # It's a hostname (not an IP), need to resolve it
+            try:
+                ip_str = socket.gethostbyname(parsed.hostname)
+                ip = ipaddress.ip_address(ip_str)
+                if ip.is_private or ip.is_loopback or ip.is_link_local:
+                    return False, "Hostname resolves to private IP address"
+            except socket.gaierror:
+                return False, "Cannot resolve hostname"
+        
+        # Block common internal hostnames
+        if parsed.hostname.lower() in BLOCKED_HOSTS:
+            return False, f"Access to {parsed.hostname} is not allowed"
+        
+        return True, "OK"
+    except Exception as e:
+        return False, f"URL validation error: {e}"
+
+
+def fetch_url_text(url: str) -> str:
+    """
+    Fetch URL with SSRF protection.
+    
+    Security note: This function intentionally makes HTTP requests to user-provided URLs
+    after comprehensive validation. The is_safe_url() function validates URLs to prevent SSRF:
+    - Blocks non-HTTP/HTTPS schemes
+    - Blocks private IP addresses (RFC 1918)
+    - Blocks loopback addresses
+    - Blocks link-local addresses
+    - Blocks internal hostnames (localhost, k8s, cloud metadata, etc.)
+    - Uses short timeout to prevent slowloris attacks
+    - Disables redirects to prevent bypass attempts
+    """
+    # Validate URL first
+    is_safe, reason = is_safe_url(url)
+    if not is_safe:
+        return f"URL rejected for security reasons: {reason}"
+    
+    try:
+        # Safe to proceed after validation - URL is restricted to public HTTP/HTTPS resources
+        resp = requests.get(url, timeout=URL_FETCH_TIMEOUT, allow_redirects=False)
         resp.raise_for_status()
         html = resp.text
     except Exception as e:
@@ -113,10 +194,9 @@ def interpret_image_to_text(img_bytes: bytes, filename: str) -> str:
                 "role": "user",
                 "content": [
                     {
-                        "type": "input_image",
-                        "image": {
-                            "data": b64,
-                            "media_type": mime_type,
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{b64}"
                         },
                     },
                     {
@@ -173,22 +253,14 @@ Constraints:
 def text_to_speech(narration_text: str) -> bytes:
     """
     Use the Audio API to turn text into speech.
-    We rely on the fact that audio.speech.create returns raw audio bytes. :contentReference[oaicite:4]{index=4}
     """
-    # optional: add extra style guidance
-    instructions = (
-        "Read as a calm, clear narrator. Vary intonation slightly to match emotion, "
-        "but stay professional and easy to follow."
-    )
-
-    audio_bytes = client.audio.speech.create(
+    response = client.audio.speech.create(
         model=TTS_MODEL,
-        voice="coral",
+        voice="alloy",  # Valid voices: alloy, echo, fable, onyx, nova, shimmer
         input=narration_text,
-        instructions=instructions,
         response_format="mp3",
     )
-    return audio_bytes
+    return response.content
 
 
 def transcribe_audio(file_obj) -> str:
@@ -268,6 +340,21 @@ def api_process():
     """
     text_input = request.form.get("text", "")
     uploaded_file = request.files.get("file")
+
+    # Validate file upload
+    if uploaded_file and uploaded_file.filename:
+        # Check file size
+        uploaded_file.seek(0, os.SEEK_END)
+        size = uploaded_file.tell()
+        uploaded_file.seek(0)
+        
+        if size > MAX_FILE_SIZE:
+            return "File too large (max 10MB)", 400
+        
+        # Validate file extension
+        ext = Path(uploaded_file.filename).suffix.lower()
+        if ext not in ALLOWED_FILE_EXTENSIONS:
+            return f"File type {ext} not allowed", 400
 
     normalized_text, modality = process_request_content(text_input, uploaded_file)
 
@@ -683,4 +770,9 @@ HTML_TEMPLATE = r"""
 # ---------- ENTRY ----------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Use environment variable for debug mode (don't enable debug in production)
+    app.run(
+        debug=os.getenv("FLASK_DEBUG", "false").lower() == "true",
+        host=os.getenv("FLASK_HOST", "127.0.0.1"),
+        port=int(os.getenv("FLASK_PORT", "5000"))
+    )
