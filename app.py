@@ -382,7 +382,7 @@ def health_check():
         "status": "healthy",
         "timestamp": time.time(),
         "service": "speech-to-text-light",
-        "version": "1.0.0"
+        "version": VERSION
     }
     return health_status, 200
 
