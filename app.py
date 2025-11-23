@@ -5,6 +5,8 @@ import mimetypes
 import time
 import re
 from pathlib import Path
+from urllib.parse import urlparse
+import ipaddress
 
 from flask import Flask, request, send_file, make_response
 from flask import render_template_string
@@ -27,6 +29,19 @@ LLM_MODEL = "gpt-4o-mini"              # text/image → “narration script” :
 
 app = Flask(__name__)
 
+# Add security headers to all responses
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to protect against common vulnerabilities."""
+    # Prevent clickjacking attacks
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    # Prevent MIME type sniffing
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    # Enforce HTTPS in production (when not in debug mode)
+    if not app.debug:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
 # ---------- UTILITIES ----------
 
 URL_REGEX = re.compile(r"^https?://", re.IGNORECASE)
@@ -36,14 +51,88 @@ def looks_like_url(text: str) -> bool:
     return bool(URL_REGEX.match(text.strip()))
 
 
+def is_safe_url(url: str) -> tuple[bool, str]:
+    """
+    Validate URL to prevent SSRF attacks.
+    Returns (is_safe, error_message).
+    """
+    try:
+        parsed = urlparse(url)
+        
+        # Only allow http and https schemes
+        if parsed.scheme not in ('http', 'https'):
+            return False, f"Unsupported URL scheme: {parsed.scheme}. Only HTTP and HTTPS are allowed."
+        
+        # Get the hostname
+        hostname = parsed.hostname
+        if not hostname:
+            return False, "Invalid URL: no hostname found."
+        
+        # Try to resolve the hostname to an IP address
+        try:
+            import socket
+            ip_str = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(ip_str)
+            
+            # Block private/internal IP addresses to prevent SSRF
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                return False, (
+                    f"URL points to a private/internal IP address ({ip_str}). "
+                    f"For security, fetching from internal networks is not allowed."
+                )
+        except socket.gaierror:
+            # If we can't resolve it, let requests handle it (it might fail anyway)
+            pass
+        except Exception:
+            # If validation fails for any other reason, allow it to proceed
+            # (requests will handle invalid URLs)
+            pass
+        
+        return True, ""
+    except Exception as e:
+        # If parsing fails, let requests handle the error
+        return True, ""
+
+
 def fetch_url_text(url: str) -> str:
     """Very simple URL fetch + HTML-to-text. For production, use something like readability."""
+    # Validate URL to prevent SSRF attacks
+    is_safe, error_msg = is_safe_url(url)
+    if not is_safe:
+        return (
+            f"URL validation failed. "
+            f"This happened because: {error_msg} "
+            f"To fix this, use a publicly accessible URL."
+        )
+    
+    # Warn about insecure HTTP URLs
+    if url.lower().startswith("http://"):
+        warning_msg = (
+            "Warning: You provided an insecure HTTP URL. "
+            "For security, you should use HTTPS URLs instead. "
+            "Proceeding with caution..."
+        )
+        print(f"[SECURITY WARNING] {warning_msg}")
+    
     try:
-        resp = requests.get(url, timeout=10)
+        # Enforce SSL/TLS certificate verification
+        resp = requests.get(url, timeout=10, verify=True)
         resp.raise_for_status()
         html = resp.text
-    except Exception as e:
-        return f"Failed to fetch URL {url}: {e}"
+    except requests.exceptions.SSLError as e:
+        return (
+            f"SSL certificate verification failed for {url}. "
+            f"This happened because the site's security certificate could not be verified. "
+            f"To fix this, ensure you are using a valid HTTPS URL with a proper SSL certificate. "
+            f"Error details: {e}"
+        )
+    except requests.exceptions.RequestException as e:
+        return (
+            f"Failed to fetch URL {url}. "
+            f"This happened because: {e}. "
+            f"To fix this, verify the URL is correct and accessible, "
+            f"and consider using HTTPS for secure connections."
+        )
 
     # ultra-lightweight HTML stripping
     # (you can swap this for BeautifulSoup / readability if you want)
@@ -683,4 +772,13 @@ HTML_TEMPLATE = r"""
 # ---------- ENTRY ----------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Use environment variable to control debug mode
+    # Set DEBUG=1, DEBUG=true, or DEBUG=yes in environment for development
+    debug_value = os.environ.get("DEBUG", "0").lower()
+    debug_mode = debug_value in ("1", "true", "yes", "on")
+    
+    if debug_mode:
+        print("[WARNING] Running in DEBUG mode. This should only be used in development.")
+        print("[WARNING] For production, do not set DEBUG environment variable.")
+    
+    app.run(debug=debug_mode)
