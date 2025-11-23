@@ -2,11 +2,10 @@ import os
 import io
 import base64
 import mimetypes
-import time
 import re
 from pathlib import Path
 
-from flask import Flask, request, send_file, make_response
+from flask import Flask, request, make_response
 from flask import render_template_string
 from openai import OpenAI
 import requests
@@ -17,7 +16,9 @@ import pandas as pd
 
 # ---------- CONFIG ----------
 
-client = OpenAI()  # uses OPENAI_API_KEY from environment
+# Initialize OpenAI client - allows for missing key during import (for testing)
+api_key = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key) if api_key else None
 
 TTS_MODEL = "gpt-4o-mini-tts"          # text → speech :contentReference[oaicite:0]{index=0}
 STT_MODEL = "gpt-4o-mini-transcribe"   # speech → text :contentReference[oaicite:1]{index=1}
@@ -32,13 +33,52 @@ app = Flask(__name__)
 URL_REGEX = re.compile(r"^https?://", re.IGNORECASE)
 
 
+def ensure_client():
+    """Ensure OpenAI client is initialized with API key."""
+    if client is None:
+        raise RuntimeError(
+            "OpenAI API key not configured. "
+            "Please set the OPENAI_API_KEY environment variable."
+        )
+
+
 def looks_like_url(text: str) -> bool:
     return bool(URL_REGEX.match(text.strip()))
 
 
 def fetch_url_text(url: str) -> str:
-    """Very simple URL fetch + HTML-to-text. For production, use something like readability."""
+    """
+    Fetch and convert URL content to text.
+    Includes basic SSRF protection by blocking private/local addresses.
+    """
     try:
+        from urllib.parse import urlparse
+        import socket
+
+        # Parse and validate URL
+        parsed = urlparse(url)
+        if parsed.scheme not in ['http', 'https']:
+            return "Invalid URL scheme. Only http and https are allowed."
+
+        # Get hostname and check if it's private/local
+        hostname = parsed.hostname
+        if not hostname:
+            return "Invalid URL: missing hostname."
+
+        # Resolve hostname to IP and check if it's private
+        try:
+            ip_addr = socket.gethostbyname(hostname)
+            # Block private IP ranges (10.x, 172.16-31.x, 192.168.x, 127.x, 169.254.x)
+            octets = ip_addr.split('.')
+            if (octets[0] == '10' or
+                    octets[0] == '127' or
+                    (octets[0] == '172' and 16 <= int(octets[1]) <= 31) or
+                    (octets[0] == '192' and octets[1] == '168') or
+                    (octets[0] == '169' and octets[1] == '254')):
+                return "Access to private/local addresses is not allowed."
+        except socket.gaierror:
+            return f"Failed to resolve hostname: {hostname}"
+
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
         html = resp.text
@@ -95,6 +135,7 @@ def summarize_table(df: pd.DataFrame) -> str:
 
 def interpret_image_to_text(img_bytes: bytes, filename: str) -> str:
     """Send an image to gpt-4o-mini and ask for a descriptive, narration-ready text."""
+    ensure_client()
     b64 = base64.b64encode(img_bytes).decode("utf-8")
     mime_type = mimetypes.guess_type(filename)[0] or "image/png"
 
@@ -113,20 +154,19 @@ def interpret_image_to_text(img_bytes: bytes, filename: str) -> str:
                 "role": "user",
                 "content": [
                     {
-                        "type": "input_image",
-                        "image": {
-                            "data": b64,
-                            "media_type": mime_type,
-                        },
-                    },
-                    {
                         "type": "text",
                         "text": "Describe this image for spoken narration.",
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{b64}",
+                        },
                     },
                 ],
             },
         ],
-    )  # :contentReference[oaicite:3]{index=3}
+    )
 
     return res.choices[0].message.content
 
@@ -140,15 +180,20 @@ def run_inflective_emergence_loop(raw_text: str, modality: str) -> str:
     - prosody-aware narration script
     Returns: text that is ready to be sent to TTS.
     """
+    ensure_client()
     system_prompt = f"""
 You are an 'Inflective Emergence Loop' driving a voice-only content reader.
 
 Pipeline:
 1. Semantic Layer: Quickly understand the source ({modality}) and extract the essential ideas.
-2. Emotion Inference: Infer the emotional tone appropriate for the material (neutral, upbeat, urgent, empathetic, etc.).
-3. Identity Kernel: Maintain a consistent, calm, intelligent narrator persona with subtle drift over time (slightly adapting tone to the content without becoming caricatured).
-4. Prosody Plan: Shape sentences so they are easy to speak and easy to listen to: short clauses, logical pauses, and clear emphasis.
-5. Output: A narration SCRIPT — not bullets, not markdown — just clean, spoken-style paragraphs.
+2. Emotion Inference: Infer the emotional tone appropriate for the material
+   (neutral, upbeat, urgent, empathetic, etc.).
+3. Identity Kernel: Maintain a consistent, calm, intelligent narrator persona with subtle drift
+   over time (slightly adapting tone to the content without becoming caricatured).
+4. Prosody Plan: Shape sentences so they are easy to speak and easy to listen to:
+   short clauses, logical pauses, and clear emphasis.
+5. Output: A narration SCRIPT — not bullets, not markdown — just clean,
+   spoken-style paragraphs.
 
 Constraints:
 - Be concise but complete enough that I’d understand the gist if I only listened once.
@@ -175,6 +220,7 @@ def text_to_speech(narration_text: str) -> bytes:
     Use the Audio API to turn text into speech.
     We rely on the fact that audio.speech.create returns raw audio bytes. :contentReference[oaicite:4]{index=4}
     """
+    ensure_client()
     # optional: add extra style guidance
     instructions = (
         "Read as a calm, clear narrator. Vary intonation slightly to match emotion, "
@@ -193,6 +239,7 @@ def text_to_speech(narration_text: str) -> bytes:
 
 def transcribe_audio(file_obj) -> str:
     """Speech to text via gpt-4o-mini-transcribe."""
+    ensure_client()
     transcript = client.audio.transcriptions.create(
         model=STT_MODEL,
         file=file_obj,
