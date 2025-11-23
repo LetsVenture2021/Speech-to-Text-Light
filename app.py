@@ -47,8 +47,38 @@ def looks_like_url(text: str) -> bool:
 
 
 def fetch_url_text(url: str) -> str:
-    """Very simple URL fetch + HTML-to-text. For production, use something like readability."""
+    """
+    Fetch and convert URL content to text.
+    Includes basic SSRF protection by blocking private/local addresses.
+    """
     try:
+        from urllib.parse import urlparse
+        import socket
+
+        # Parse and validate URL
+        parsed = urlparse(url)
+        if not parsed.scheme in ['http', 'https']:
+            return f"Invalid URL scheme. Only http and https are allowed."
+
+        # Get hostname and check if it's private/local
+        hostname = parsed.hostname
+        if not hostname:
+            return f"Invalid URL: missing hostname."
+
+        # Resolve hostname to IP and check if it's private
+        try:
+            ip_addr = socket.gethostbyname(hostname)
+            # Block private IP ranges (10.x, 172.16-31.x, 192.168.x, 127.x, 169.254.x)
+            octets = ip_addr.split('.')
+            if (octets[0] == '10' or
+                octets[0] == '127' or
+                (octets[0] == '172' and 16 <= int(octets[1]) <= 31) or
+                (octets[0] == '192' and octets[1] == '168') or
+                (octets[0] == '169' and octets[1] == '254')):
+                return f"Access to private/local addresses is not allowed."
+        except socket.gaierror:
+            return f"Failed to resolve hostname: {hostname}"
+
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
         html = resp.text

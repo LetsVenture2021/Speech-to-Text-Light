@@ -94,5 +94,27 @@ class TestAppConfiguration:
         assert "/api/voice" in routes
 
 
+class TestSSRFProtection:
+    """Test SSRF protection"""
+
+    def test_blocks_localhost(self):
+        """Test that localhost URLs are blocked"""
+        from app import fetch_url_text
+        result = fetch_url_text("http://localhost:8080/secret")
+        assert "private/local addresses" in result.lower() or "failed" in result.lower()
+
+    def test_blocks_private_ips(self):
+        """Test that private IP addresses are blocked"""
+        from app import fetch_url_text
+        result = fetch_url_text("http://192.168.1.1/admin")
+        assert "private/local addresses" in result.lower() or "failed" in result.lower()
+
+    def test_blocks_invalid_scheme(self):
+        """Test that non-http/https schemes are blocked"""
+        from app import fetch_url_text
+        result = fetch_url_text("file:///etc/passwd")
+        assert "invalid url scheme" in result.lower()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
