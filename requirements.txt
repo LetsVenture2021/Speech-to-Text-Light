@@ -1,5 +1,6 @@
 # Core web framework
 flask>=3.0.0
+gunicorn>=21.0.0
 
 # OpenAI API client
 openai>=1.12.0
