@@ -4,7 +4,10 @@ import base64
 import mimetypes
 import time
 import re
+import socket
+import ipaddress
 from pathlib import Path
+from urllib.parse import urlparse
 
 from flask import Flask, request, send_file, make_response
 from flask import render_template_string
@@ -22,6 +25,7 @@ client = OpenAI()  # uses OPENAI_API_KEY from environment
 TTS_MODEL = "gpt-4o-mini-tts"          # text → speech :contentReference[oaicite:0]{index=0}
 STT_MODEL = "gpt-4o-mini-transcribe"   # speech → text :contentReference[oaicite:1]{index=1}
 LLM_MODEL = "gpt-4o-mini"              # text/image → “narration script” :contentReference[oaicite:2]{index=2}
+URL_FETCH_TIMEOUT = 10  # seconds for remote fetches
 
 # ---------- FLASK APP ----------
 
@@ -36,14 +40,74 @@ def looks_like_url(text: str) -> bool:
     return bool(URL_REGEX.match(text.strip()))
 
 
+def validate_public_url(url: str) -> tuple[str | None, str | None]:
+    """
+    Enforce that a URL uses HTTP(S) and resolves only to public IPs.
+    Returns: (url or None, rejection_reason or None)
+    """
+    parsed = urlparse(url)
+    if parsed.scheme.lower() not in {"http", "https"}:
+        return None, "Only HTTP/HTTPS schemes are allowed"
+
+    hostname = parsed.hostname
+    if not hostname:
+        return None, "URL missing hostname"
+    if hostname.lower() == "localhost":
+        return None, "localhost is not allowed"
+
+    try:
+        addr_infos = socket.getaddrinfo(hostname, None)
+    except Exception as err:
+        return None, f"failed host resolution ({hostname}): {err}"
+
+    for _, _, _, _, sockaddr in addr_infos:
+        ip_str = sockaddr[0]
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return None, f"resolution returned invalid IP ({ip_str})"
+
+        if (
+            ip_obj.is_private
+            or ip_obj.is_loopback
+            or ip_obj.is_link_local
+            or ip_obj.is_reserved
+        ):
+            return None, f"destination resolves to disallowed IP ({ip_str})"
+
+    return url, None
+
+
 def fetch_url_text(url: str) -> str:
     """Very simple URL fetch + HTML-to-text. For production, use something like readability."""
+    safe_url, reason = validate_public_url(url.strip())
+    if not safe_url:
+        return f"URL rejected for security reasons: {reason}"
+
     try:
-        resp = requests.get(url, timeout=10)
+        # Re-resolve hostname and ensure it maps to a public IP, to prevent SSRF via DNS rebinding or race conditions
+        parsed = urlparse(safe_url)
+        final_host = parsed.hostname or ""
+        # Defensive: catch resolution errors
+        try:
+            resolved_ip = socket.gethostbyname(final_host)
+            ip_obj = ipaddress.ip_address(resolved_ip)
+            # Check public-ness
+            if (
+                ip_obj.is_private
+                or ip_obj.is_loopback
+                or ip_obj.is_link_local
+                or ip_obj.is_reserved
+            ):
+                return f"URL rejected: destination resolves to disallowed IP ({resolved_ip})"
+        except Exception as err:
+            return f"URL rejected: failed host resolution ({final_host}): {err}"
+        # Safe to proceed after re-validation
+        resp = requests.get(safe_url, timeout=URL_FETCH_TIMEOUT, allow_redirects=False)
         resp.raise_for_status()
         html = resp.text
     except Exception as e:
-        return f"Failed to fetch URL {url}: {e}"
+        return f"Failed to fetch URL {safe_url}: {e}"
 
     # ultra-lightweight HTML stripping
     # (you can swap this for BeautifulSoup / readability if you want)
