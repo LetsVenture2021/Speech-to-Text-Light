@@ -1,0 +1,4 @@
+# Keep local environment and build artifacts out of git
+.env
+__pycache__/
+*.pyc
