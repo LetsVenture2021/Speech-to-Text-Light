@@ -18,8 +18,8 @@
       <h1 class="pv-serif">Speech-to-Text Light</h1>
       <p class="pv-section-sub">A lightweight hands-free companion that ingests URLs, files, paste or spoken prompts and responds with emotionally aware narration.</p>
       <div style="display:flex;gap:12px;align-items:center;justify-content:center;margin-top:12px;">
-        <button id="clearMemory" class="pv-btn pv-btn-secondary">Clear Memory</button>
-        <button id="downloadTranscript" class="pv-btn pv-btn-primary">Download Transcript</button>
+        <button id="clearMemory" class="pv-btn pv-btn-secondary" aria-label="Clear conversation memory">Clear Memory</button>
+        <button id="downloadTranscript" class="pv-btn pv-btn-primary" aria-label="Download transcript as JSON">Download Transcript</button>
       </div>
     </div>
   </header>
@@ -34,12 +34,12 @@
           </div>
 
           <div style="position:relative;margin-top:12px;">
-            <button id="uploadBtn" title="Upload file" class="pv-btn pv-btn-secondary" style="position:absolute;left:8px;top:8px;border-radius:8px;padding:8px 10px;">📎</button>
+            <button id="uploadBtn" title="Upload file" class="pv-btn pv-btn-secondary" style="position:absolute;left:8px;top:8px;border-radius:8px;padding:8px 10px;" aria-label="Upload file">📎</button>
             <textarea id="inputText" class="pv-input" placeholder="Type, paste a URL, or upload a file here..." rows="6" style="padding-left:56px;padding-right:130px;"></textarea>
 
             <div style="position:absolute;right:8px;top:8px;display:flex;gap:8px;">
-              <button id="micBtn" title="Record speech" class="pv-btn pv-btn-primary" style="border-radius:8px;padding:8px 10px;">🎙️</button>
-              <button id="sendBtn" title="Send / Narrate" class="pv-btn pv-btn-secondary" style="border-radius:8px;padding:8px 10px;">📤</button>
+              <button id="micBtn" title="Record speech" class="pv-btn pv-btn-primary" style="border-radius:8px;padding:8px 10px;" aria-label="Record speech">🎙️</button>
+              <button id="sendBtn" title="Send / Narrate" class="pv-btn pv-btn-secondary" style="border-radius:8px;padding:8px 10px;" aria-label="Send or narrate">📤</button>
             </div>
           </div>
 
@@ -56,8 +56,8 @@
         <div class="pv-card" style="margin-top:18px;">
           <h3 class="pv-section-title" style="font-size:1.05rem;">Controls</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <label><input id="ttsEnabled" type="checkbox" class="pv-checkbox" checked /> Enable TTS</label>
-            <label><input id="autoPlay" type="checkbox" class="pv-checkbox" checked /> Auto-play on submit</label>
+            <span><input id="ttsEnabled" type="checkbox" class="pv-checkbox" checked /><label for="ttsEnabled"> Enable TTS</label></span>
+            <span><input id="autoPlay" type="checkbox" class="pv-checkbox" checked /><label for="autoPlay"> Auto-play on submit</label></span>
             <label style="margin-left:auto">Voice: <select id="voiceSelect" class="pv-select"></select></label>
           </div>
           <div style="margin-top:12px;">
