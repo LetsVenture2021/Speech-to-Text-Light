@@ -1,0 +1,17 @@
+# Core web framework
+flask>=3.0.0
+gunicorn>=21.0.0
+
+# OpenAI API client
+openai>=1.12.0
+
+# Document processing
+pypdf>=4.0.0
+python-docx>=1.1.0
+
+# Data processing
+pandas>=2.1.0
+openpyxl>=3.1.0  # For Excel file support
+
+# HTTP requests
+requests>=2.31.0

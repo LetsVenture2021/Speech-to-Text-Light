@@ -372,6 +372,21 @@ def api_voice():
     return resp
 
 
+@app.route("/health", methods=["GET"])
+def health_check():
+    """
+    Health check endpoint for monitoring systems.
+    Returns 200 if the application is running properly.
+    """
+    health_status = {
+        "status": "healthy",
+        "timestamp": time.time(),
+        "service": "speech-to-text-light",
+        "version": VERSION
+    }
+    return health_status, 200
+
+
 # ---------- INLINE FRONTEND ----------
 
 HTML_TEMPLATE = r"""
@@ -747,4 +762,7 @@ HTML_TEMPLATE = r"""
 # ---------- ENTRY ----------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Run with debug mode disabled in production
+    debug_mode = os.getenv("FLASK_ENV") != "production"
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)
