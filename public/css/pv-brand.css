@@ -1,0 +1,329 @@
+/****************************************************
+ PRYCELESS VENTURES — GLOBAL BRAND IDENTITY CSS
+ Institutional / HNW Investor / Private Equity Aesthetic
+****************************************************/
+
+/* ---------- COLOR SYSTEM ---------- */
+
+:root {
+  --pv-primary: #12263A;              /* Deep navy – trust, institutional */
+  --pv-primary-dark: #0B1724;         /* Darker navy for headers */
+  --pv-secondary: #C8A04F;            /* Gold – wealth, luxury */
+  --pv-accent-blue: #2563EB;          /* Accent blue – clarity + emphasis */
+  --pv-cta: #EA580C;                  /* Warm orange – high-converting CTA */
+  --pv-cta-hover: #D44F09;            /* CTA hover */
+  --pv-bg-light: #F5F7FB;             /* Light gray-blue background */
+  --pv-bg-soft: #EEF2F7;              /* Soft background blocks */
+  --pv-text-main: #0F172A;            /* Primary text color */
+  --pv-text-muted: #6B7280;           /* Muted gray text */
+  --pv-border-soft: #E2E8F0;          /* Soft borders */
+  --pv-white: #FFFFFF;
+  --pv-black: #000000;
+
+  /* SPACING SYSTEM */
+  --pv-space-xs: 8px;
+  --pv-space-sm: 14px;
+  --pv-space-md: 24px;
+  --pv-space-lg: 40px;
+  --pv-space-xl: 70px;
+
+  /* SHADOWS */
+  --pv-shadow-soft: 0 6px 12px rgba(15, 23, 42, 0.06);
+  --pv-shadow-medium: 0 12px 24px rgba(15, 23, 42, 0.12);
+  --pv-shadow-heavy: 0 22px 44px rgba(15, 23, 42, 0.18);
+}
+
+/****************************************************
+  TYPOGRAPHY SYSTEM
+  (Use Inter + Playfair Display for institutional trust)
+****************************************************/
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: var(--pv-text-main);
+  background: var(--pv-white);
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+.pv-serif {
+  font-family: 'Playfair Display', serif !important;
+}
+
+h1, h2, h3 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+  color: var(--pv-primary);
+  line-height: 1.3;
+}
+
+h1 {
+  font-size: 2.6rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.3rem;
+}
+
+p {
+  margin-bottom: var(--pv-space-sm);
+  color: var(--pv-text-main);
+}
+
+/****************************************************
+  BUTTONS & CTAS
+****************************************************/
+
+.pv-btn {
+  display: inline-block;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-decoration: none !important;
+}
+
+.pv-btn-primary {
+  background: var(--pv-cta);
+  color: var(--pv-white);
+  box-shadow: var(--pv-shadow-medium);
+}
+
+.pv-btn-primary:hover {
+  background: var(--pv-cta-hover);
+  transform: translateY(-2px);
+}
+
+.pv-btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  color: var(--pv-primary);
+}
+
+.pv-btn-secondary:hover {
+  background: rgba(249, 250, 251, 0.4);
+}
+
+/****************************************************
+  CARDS & BLOCKS
+****************************************************/
+
+.pv-card {
+  background: var(--pv-bg-soft);
+  border: 1px solid var(--pv-border-soft);
+  border-radius: 14px;
+  padding: var(--pv-space-md);
+  box-shadow: var(--pv-shadow-soft);
+}
+
+.pv-card-dark {
+  background: var(--pv-primary-dark);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 14px;
+  padding: var(--pv-space-md);
+  color: var(--pv-white);
+  box-shadow: var(--pv-shadow-heavy);
+}
+
+/****************************************************
+  BADGES & LABELS
+****************************************************/
+
+.pv-badge {
+  display: inline-block;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  color: var(--pv-primary);
+  background: var(--pv-bg-soft);
+}
+
+.pv-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(200,160,79,0.12);
+  border: 1px solid rgba(200,160,79,0.35);
+  color: var(--pv-secondary);
+  font-size: 0.82rem;
+}
+
+/****************************************************
+  GRID SYSTEM
+****************************************************/
+
+.pv-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pv-space-lg);
+}
+
+.pv-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pv-space-md);
+}
+
+.pv-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--pv-space-md);
+}
+
+/****************************************************
+  TIMELINE & LISTS
+****************************************************/
+
+.pv-list-check {
+  list-style: none;
+  padding-left: 0;
+}
+
+.pv-list-check li {
+  position: relative;
+  padding-left: 26px;
+  margin-bottom: 10px;
+}
+
+.pv-list-check li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #16A34A; /* Success green */
+  font-weight: 700;
+}
+
+/* Timeline */
+.pv-timeline {
+  border-left: 2px solid var(--pv-border-soft);
+  padding-left: var(--pv-space-md);
+  list-style: none;
+}
+
+.pv-timeline li {
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.pv-timeline li::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: var(--pv-secondary);
+  border-radius: 50%;
+  border: 2px solid var(--pv-white);
+  position: absolute;
+  left: -22px;
+  top: 4px;
+}
+
+/****************************************************
+  HERO & SECTION STYLING
+****************************************************/
+
+.pv-hero {
+  background: linear-gradient(
+    135deg,
+    var(--pv-primary-dark),
+    var(--pv-primary)
+  );
+  color: var(--pv-white);
+  padding: var(--pv-space-xl) 0 var(--pv-space-lg);
+}
+
+.pv-section {
+  padding: var(--pv-space-xl) 0;
+  background: var(--pv-white);
+}
+
+.pv-section.alt {
+  background: var(--pv-bg-light);
+}
+
+.pv-section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.1rem;
+  text-align: center;
+  color: var(--pv-primary);
+  margin-bottom: var(--pv-space-sm);
+}
+
+.pv-section-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.82rem;
+  color: var(--pv-text-muted);
+  text-align: center;
+}
+
+.pv-section-sub {
+  text-align: center;
+  font-size: 1rem;
+  color: var(--pv-text-muted);
+  max-width: 760px;
+  margin: 0 auto var(--pv-space-lg);
+}
+
+/****************************************************
+  FORMS (Branding-ready)
+****************************************************/
+
+.pv-input,
+.pv-select,
+.pv-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  border: 1px solid var(--pv-border-soft);
+  border-radius: 10px;
+  background: var(--pv-white);
+  color: var(--pv-text-main);
+  transition: all 0.2s ease;
+}
+
+.pv-input:focus,
+.pv-select:focus,
+.pv-textarea:focus {
+  border-color: var(--pv-accent-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  outline: none;
+}
+
+.pv-checkbox {
+  accent-color: var(--pv-accent-blue);
+  width: 18px;
+  height: 18px;
+}
+
+/****************************************************
+  RESPONSIVE
+****************************************************/
+
+@media (max-width: 900px) {
+  .pv-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 2.2rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .pv-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 1.9rem;
+  }
+}

@@ -1,0 +1,32 @@
+/* App-specific small styles */
+
+body {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
+  padding-bottom: 60px;
+}
+
+#inputText {
+  transition: box-shadow .15s ease;
+  font-size: 1rem;
+  min-height: 120px;
+  resize: vertical;
+}
+
+#memoryList li {
+  padding: 10px 14px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--pv-border-soft);
+  margin-bottom: 10px;
+  box-shadow: var(--pv-shadow-soft);
+}
+
+#log {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+  font-size: 0.9rem;
+}
+
+/* small responsive adjustments */
+@media (max-width:900px) {
+  #inputText { padding-right:12px; }
+}
