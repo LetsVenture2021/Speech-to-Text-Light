@@ -26,6 +26,18 @@ body {
   font-size: 0.9rem;
 }
 
+/* Screen-reader-only utility class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
 /* small responsive adjustments */
 @media (max-width:900px) {
   #inputText { padding-right:12px; }

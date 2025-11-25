@@ -2,6 +2,15 @@
 // falls back to local heuristics when server is unavailable.
 
 (function () {
+  // Explicit declarations to avoid implicit globals
+  let recognition = null;
+  let silenceTimer = null;
+  let transcriptParts = [];
+
+  // Configurable constants
+  const MEMORY_LIMIT = parseInt(localStorage.getItem('sttl_memory_limit') || '40', 10);
+  const ALLOWED_FILE_TYPES = ['txt', 'md', 'html', 'pdf', 'jpg', 'jpeg', 'png'];
+
   const inputText = document.getElementById('inputText');
   const sendBtn = document.getElementById('sendBtn');
   const micBtn = document.getElementById('micBtn');
@@ -33,7 +42,18 @@
     memoryList.innerHTML = '';
     mem.slice().reverse().forEach(entry => {
       const li = document.createElement('li');
-      li.innerHTML = `<strong>${entry.summary}</strong><div style="font-size:0.86rem;color:var(--pv-text-muted)">${entry.note || ''} • ${new Date(entry.ts).toLocaleString()}</div>`;
+
+      // Safe DOM creation to prevent XSS
+      const strong = document.createElement('strong');
+      strong.textContent = entry.summary;
+      li.appendChild(strong);
+
+      const div = document.createElement('div');
+      div.style.fontSize = '0.86rem';
+      div.style.color = 'var(--pv-text-muted)';
+      div.textContent = (entry.note || '') + ' • ' + new Date(entry.ts).toLocaleString();
+      li.appendChild(div);
+
       memoryList.appendChild(li);
     });
   }
@@ -108,13 +128,13 @@
   async function handleSubmit(raw, meta = {}) {
     setStatus('Processing input...');
     // try server
-    const serverResult = await serverSummarize(raw).catch(()=>null);
+    const serverResult = await serverSummarize(raw);
     if (serverResult && serverResult.narration) {
       const { narration, emotion } = serverResult;
       // save memory
       const memory = loadMemory();
       memory.push({ ts: Date.now(), summary: narration.slice(0,120), note: `emo:${emotion.label} score:${emotion.score}` });
-      if (memory.length > 40) memory.shift();
+      if (memory.length > MEMORY_LIMIT) memory.shift();
       saveMemory(memory); renderMemory();
       transcripts.push({ ts: Date.now(), raw, narration, emotion });
       if (autoPlay.checked && ttsEnabled.checked) speakText(narration, emotion);
@@ -127,7 +147,7 @@
     const narration = generateNarrationLocal(raw, emotion);
     const memory = loadMemory();
     memory.push({ ts: Date.now(), summary: narration.slice(0,120), note: `emo:${emotion.label} score:${emotion.score}` });
-    if (memory.length > 40) memory.shift();
+    if (memory.length > MEMORY_LIMIT) memory.shift();
     saveMemory(memory); renderMemory();
     transcripts.push({ ts: Date.now(), raw, narration, emotion });
     if (autoPlay.checked && ttsEnabled.checked) speakText(narration, emotion);
@@ -140,6 +160,14 @@
   fileInput.addEventListener('change', async (ev) => {
     const f = ev.target.files[0];
     if (!f) return;
+
+    // Client-side file type validation
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!ALLOWED_FILE_TYPES.includes(ext)) {
+      setStatus('File type not allowed. Accepted: ' + ALLOWED_FILE_TYPES.join(', '));
+      return;
+    }
+
     setStatus('Uploading file: ' + f.name);
     try {
       const fd = new FormData();
@@ -168,16 +196,20 @@
       setStatus('Detected URL — requesting server to fetch...');
       try {
         const res = await fetch('/api/fetch-url', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url: text }) });
-        const body = await res.json();
-        if (res.ok && body.text) { inputText.value = body.text; text = body.text; setStatus('Fetched remote content to input.'); }
-        else { appendLog('Fetch-url failed'); }
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          appendLog('Fetch-url returned non-JSON content-type: ' + contentType);
+        } else {
+          const body = await res.json();
+          if (res.ok && body.text) { inputText.value = body.text; text = body.text; setStatus('Fetched remote content to input.'); }
+          else { appendLog('Fetch-url failed'); }
+        }
       } catch (err) { appendLog('Fetch-url exception: ' + err.message); }
     }
     await handleSubmit(text);
   });
 
   // Microphone/recognition (client-side), same auto-send after silence approach
-  let recognition, silenceTimer;
   async function initRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -188,7 +220,6 @@
     recognition.lang = 'en-US';
     recognition.interimResults = true;
     recognition.continuous = true;
-    let transcriptParts = [];
     recognition.onresult = (ev) => {
       let interim = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
@@ -218,7 +249,9 @@
     } else {
       if (!recognition) recognition = await initRecognition();
       if (!recognition) { setStatus('Speech recognition not supported in your browser.'); return; }
-      
+
+      // Reset transcriptParts for new recording session
+      transcriptParts = [];
       recognition.start();
       micBtn.dataset.recording = '1';
       micBtn.textContent = '⏹️';
@@ -265,6 +298,6 @@
     }, 50);
   });
 
-  window.S2TL = { inferEmotionLocal: inferEmotionLocal, handleSubmit, loadMemory, saveMemory, transcripts };
+  window.S2TL = { inferEmotionLocal: inferEmotionLocal, handleSubmit, loadMemory, saveMemory, transcripts: transcripts || [] };
 
 })();
