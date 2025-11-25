@@ -37,9 +37,9 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     # Prevent MIME type sniffing
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    # Enforce HTTPS in production (when not in debug mode)
+    # Enable HSTS in production (without includeSubDomains to avoid issues with subdomains that don't support HTTPS)
     if not app.debug:
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000'
     return response
 
 # ---------- UTILITIES ----------
@@ -105,33 +105,30 @@ def fetch_url_text(url: str) -> str:
             f"To fix this, use a publicly accessible URL."
         )
     
-    # Warn about insecure HTTP URLs
+    # Block insecure HTTP URLs
     if url.lower().startswith("http://"):
-        warning_msg = (
-            "Warning: You provided an insecure HTTP URL. "
-            "For security, you should use HTTPS URLs instead. "
-            "Proceeding with caution..."
+        return (
+            f"Error: Insecure HTTP URL detected. "
+            f"This happened because HTTP connections are not encrypted and can be intercepted. "
+            f"To fix this, use an HTTPS URL instead (change 'http://' to 'https://')."
         )
-        print(f"[SECURITY WARNING] {warning_msg}")
     
     try:
-        # Enforce SSL/TLS certificate verification
+        # SSL/TLS certificate verification is enabled (requests default behavior, made explicit for clarity)
         resp = requests.get(url, timeout=10, verify=True)
         resp.raise_for_status()
         html = resp.text
-    except requests.exceptions.SSLError as e:
+    except requests.exceptions.SSLError:
         return (
-            f"SSL certificate verification failed for {url}. "
+            f"SSL certificate verification failed. "
             f"This happened because the site's security certificate could not be verified. "
-            f"To fix this, ensure you are using a valid HTTPS URL with a proper SSL certificate. "
-            f"Error details: {e}"
+            f"To fix this, ensure you are using a valid HTTPS URL with a proper SSL certificate."
         )
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
         return (
-            f"Failed to fetch URL {url}. "
-            f"This happened because: {e}. "
-            f"To fix this, verify the URL is correct and accessible, "
-            f"and consider using HTTPS for secure connections."
+            f"Failed to fetch the URL. "
+            f"This happened because the URL could not be reached or returned an error. "
+            f"To fix this, verify the URL is correct and the site is accessible."
         )
 
     # ultra-lightweight HTML stripping

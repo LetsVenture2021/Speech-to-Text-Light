@@ -46,12 +46,12 @@ The application focuses on rapid, natural listening. Users can hand it any form 
 
 ## Security Considerations
 
-- **HTTPS Enforcement**: The application warns when insecure HTTP URLs are used and recommends HTTPS for secure connections.
-- **SSL/TLS Verification**: SSL certificate verification is enforced to prevent man-in-the-middle attacks.
+- **HTTPS Enforcement**: The application blocks insecure HTTP URLs and requires HTTPS for secure connections.
+- **SSL/TLS Verification**: SSL certificate verification is enabled by default for HTTPS connections.
 - **SSRF Protection**: URL validation prevents Server-Side Request Forgery (SSRF) attacks by blocking requests to private/internal IP addresses and localhost.
 - **Debug Mode**: Debug mode is disabled by default. To enable it for development, set the `DEBUG` environment variable to `1`, `true`, `yes`, or `on`.
 - **Security Headers**: The application includes security headers (X-Frame-Options, X-Content-Type-Options, and HSTS) to protect against common web vulnerabilities.
-- **Error Messages**: Error messages clearly explain what happened and provide guidance on how to fix issues, especially for HTTP/HTTPS-related problems.
+- **Error Messages**: Error messages clearly explain what happened and provide guidance on how to fix issues, without exposing sensitive internal details.
 
 ## Roadmap Ideas
 
