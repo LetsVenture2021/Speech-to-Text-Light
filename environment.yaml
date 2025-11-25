@@ -1,9 +1,15 @@
-# environment.yml
+# environment.yaml
 name: speech-to-text-env
 channels:
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.10
   - pip
   - pip:
-      - any-required-pypi-packages
+      - flask
+      - openai
+      - requests
+      - pypdf
+      - python-docx
+      - pandas
+      - openpyxl
