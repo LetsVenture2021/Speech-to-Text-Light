@@ -2,13 +2,10 @@
 import io
 import os
 import pytest
+import pandas as pd
 
 # Set a dummy API key before importing app to avoid OpenAI initialization error
 os.environ.setdefault("OPENAI_API_KEY", "test-key-for-unit-tests")
-
-# Import the functions we want to test
-import sys
-sys.path.insert(0, '..')
 
 from app import (
     looks_like_url,
@@ -141,7 +138,6 @@ class TestSummarizeTable:
     """Tests for summarize_table function."""
 
     def test_basic_dataframe(self):
-        import pandas as pd
         df = pd.DataFrame({
             'name': ['Alice', 'Bob', 'Charlie'],
             'age': [25, 30, 35]
@@ -153,7 +149,6 @@ class TestSummarizeTable:
         assert "age" in result
 
     def test_numeric_stats(self):
-        import pandas as pd
         df = pd.DataFrame({
             'value': [10, 20, 30, 40, 50]
         })
@@ -163,7 +158,6 @@ class TestSummarizeTable:
         assert "max" in result
 
     def test_empty_dataframe(self):
-        import pandas as pd
         df = pd.DataFrame()
         result = summarize_table(df)
         assert "0 rows" in result
