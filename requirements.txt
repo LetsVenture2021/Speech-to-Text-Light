@@ -1,0 +1,21 @@
+# Core Flask framework
+flask>=3.0.0
+
+# OpenAI API client
+openai>=1.0.0
+
+# HTTP requests for URL fetching
+requests>=2.31.0
+
+# PDF parsing
+pypdf>=3.17.0
+
+# Word document parsing
+python-docx>=1.1.0
+
+# Data analysis (Excel/CSV)
+pandas>=2.1.0
+openpyxl>=3.1.2
+
+# Testing
+pytest>=7.4.0
