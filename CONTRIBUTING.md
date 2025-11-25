@@ -219,12 +219,12 @@ CONFLICT (content): Merge conflict in app.py
 
 1. Open the conflicted file(s)
 2. Look for conflict markers:
-```python
-<<<<<<< HEAD
-# Your current code
-=======
-# Incoming code
->>>>>>> feature/my-feature
+```
+ <<<<<<< HEAD
+ # Your current code
+ =======
+ # Incoming code
+ >>>>>>> feature/my-feature
 ```
 3. Edit to keep what you want
 4. Remove the conflict markers
